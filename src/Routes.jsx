@@ -8,6 +8,7 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import PrivateRoute from './components/PrivateRoute'
+import AboutUs from './pages/AboutUs.jsx'
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,8 @@ const AppRoutes = () => {
         <Route path='signup' element={<Signup />} />
         <Route path='find-a-partner' element={<FindAPartner />} />
         <Route path='login' element={<LoginPage />} />
+        {/* La Route pour votre page AboutUs */}
+        <Route path='/about' element={<AboutUs />} />
         <Route
           path='/profile'
           element={

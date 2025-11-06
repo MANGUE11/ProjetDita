@@ -1,6 +1,6 @@
 // src/components/BlogArticle.jsx
 import React from 'react'
-import blogImage from '../assets/coupleBlog.jpg' // Assure-toi que l'image est bien ici
+import blogImage from '../assets/coupleBlog.jpg'
 
 const BlogArticle = () => {
   const article = {
@@ -18,24 +18,24 @@ const BlogArticle = () => {
   return (
     <section className='max-w-4xl mx-auto mt-20 px-6'>
       <h1 className='text-4xl font-bold text-center mb-12'>Nos blogs</h1>
-      <article className='flex space-x-6 bg-white rounded-none p-4'>
-        {/* Image à gauche */}
+
+      <article className='flex flex-col md:flex-row md:space-x-6 bg-white rounded-none p-4'>
         <img
           src={article.imageUrl}
           alt={article.title}
-          className='w-64 h-64 object-cover rounded-lg flex-shrink-0 cursor-pointer'
+          className='w-full md:w-64 h-64 object-cover rounded-lg flex-shrink-0 cursor-pointer mb-4 md:mb-0'
         />
 
-        {/* Texte à droite */}
         <div className='flex flex-col justify-between'>
           <div>
-            <h2 className='text-2xl font-bold mb-3'>{article.title}</h2>
-            <p className='text-justify text-gray-700 leading-relaxed'>
+            <h2 className='text-xl md:text-2xl font-bold mb-2 md:mb-3'>
+              {article.title}
+            </h2>
+            <p className='text-justify text-gray-700 leading-relaxed text-sm md:text-base'>
               {article.content}
             </p>
           </div>
 
-          {/* Info date, heure, auteur */}
           <div className='mt-4 text-sm text-gray-500'>
             Publié le {article.date} à {article.time} par {article.author}
           </div>

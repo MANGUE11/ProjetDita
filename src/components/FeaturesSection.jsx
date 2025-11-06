@@ -43,7 +43,7 @@ const FeaturesSection = () => {
         </div>
 
         <a
-          href='#'
+          href='/signup'
           className='bg-orange-500 text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-orange-600 mt-10 inline-block'
         >
           Inscrivez-vous
