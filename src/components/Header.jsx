@@ -24,7 +24,7 @@ const Header = () => {
         const token = localStorage.getItem('token')
         axios
           .get(
-            `http://13.51.235.99:8081/api/v1/profile/view/${profilePhoto.photoKey}`,
+            `http://16.170.240.170:8081/api/v1/profile/view/${profilePhoto.photoKey}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

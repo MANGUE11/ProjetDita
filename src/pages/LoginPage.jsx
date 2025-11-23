@@ -17,7 +17,7 @@ const LoginPage = () => {
 
     try {
       const response = await axios.post(
-        'http://13.51.235.99:8081/api/v1/auth/signin',
+        'http://16.170.240.170:8081/api/v1/auth/signin',
         { email, password, code: '' },
         { headers: { 'Content-Type': 'application/json' } }
       )

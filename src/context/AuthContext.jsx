@@ -9,9 +9,10 @@ export const AuthProvider = ({ children }) => {
   const fetchUserByEmail = async (email) => {
     try {
       const token = localStorage.getItem('token') // ✅ Récupération du token
+      const API_URL = process.env.REACT_APP_API_URL
 
       const res = await axios.get(
-        `http://13.51.235.99:8081/api/v1/users/get-by-email/${email}`,
+        `${API_URL}/api/v1/users/get-by-email/${email}`,
         {
           headers: {
             Authorization: `Bearer ${token}`, // ✅ En-tête sécurisé

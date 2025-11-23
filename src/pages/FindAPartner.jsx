@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import axiosInstance from '../utils/axiosInstance'
 import { ChevronDown } from 'lucide-react'
 import { FaHeart, FaTimes } from 'react-icons/fa'
+
+// --- Composants Modales et Toasts ---
 
 // Toast component
 const Toast = ({ message, type = 'success', onClose }) => {
@@ -19,6 +21,131 @@ const Toast = ({ message, type = 'success', onClose }) => {
     </div>
   )
 }
+
+// Composant de Modale générique pour l'image en plein écran
+const ImageFullScreenModal = ({ imageUrl, onClose }) => {
+  if (!imageUrl) return null
+
+  return (
+    <div
+      className='fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4'
+      onClick={onClose}
+    >
+      <div
+        className='relative max-w-full max-h-full'
+        onClick={(e) => e.stopPropagation()} // Empêche la fermeture lors du clic sur l'image
+      >
+        <img
+          src={imageUrl}
+          alt='Photo en plein écran'
+          className='max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl'
+        />
+        <button
+          onClick={onClose}
+          className='absolute top-2 right-2 p-2 bg-red-700 text-white rounded-full text-xl opacity-90 hover:opacity-100 transition'
+        >
+          <FaTimes />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// --- Composant Galerie de Photos Extra ---
+
+const ProfilePhotoGallery = React.memo(({ profile }) => {
+  const [extraPhotoUrls, setExtraPhotoUrls] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [fullScreenUrl, setFullScreenUrl] = useState(null) // État pour la modale
+
+  // Fonction de base pour récupérer une URL de photo
+  const fetchPhotoUrl = useCallback(async (photoKey) => {
+    try {
+      const res = await axiosInstance.get(`/profile/view/${photoKey}`, {
+        responseType: 'blob',
+      })
+      return URL.createObjectURL(res.data)
+    } catch (error) {
+      console.error("Erreur de récupération de l'image:", error)
+      return null
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchExtraPhotos = async () => {
+      setLoading(true)
+      const newExtraUrls = {}
+
+      // Filtrer les photos "EXTRAS" et prendre au maximum les 3 premières
+      const extraPhotos = profile.photos
+        .filter((p) => p.type === 'EXTRAS' && p.approved)
+        .slice(0, 3)
+
+      await Promise.all(
+        extraPhotos.map(async (photo) => {
+          const url = await fetchPhotoUrl(photo.photoKey)
+          if (url) {
+            newExtraUrls[photo.photoKey] = url
+          }
+        })
+      )
+      setExtraPhotoUrls(newExtraUrls)
+      setLoading(false)
+    }
+
+    if (profile) {
+      fetchExtraPhotos()
+    }
+
+    // Nettoyage des URL objets lorsque le composant se démonte
+    return () => {
+      Object.values(extraPhotoUrls).forEach((url) => {
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url)
+      })
+    }
+  }, [profile, fetchPhotoUrl])
+
+  if (loading) {
+    return (
+      <div className='text-white text-center p-4'>Chargement des photos...</div>
+    )
+  }
+
+  const photoKeys = Object.keys(extraPhotoUrls)
+
+  return (
+    <>
+      <div className='flex flex-col gap-3 p-2 bg-black/10 rounded-lg min-w-[120px]'>
+        <h3 className='text-sm font-semibold border-b border-white/50 pb-1'>
+          Photos Extra
+        </h3>
+        {photoKeys.length === 0 ? (
+          <p className='text-xs text-white/70'>
+            Aucune autre photo disponible.
+          </p>
+        ) : (
+          photoKeys.map((key) => (
+            <img
+              key={key}
+              src={extraPhotoUrls[key]}
+              alt='Photo supplémentaire'
+              className='w-full h-24 object-cover rounded-lg shadow-md border-2 border-white/20 cursor-pointer hover:opacity-80 transition'
+              onClick={() => setFullScreenUrl(extraPhotoUrls[key])} // <-- NOUVEAU: Ouvre la modale
+            />
+          ))
+        )}
+      </div>
+
+      {/* Modale plein écran */}
+      <ImageFullScreenModal
+        imageUrl={fullScreenUrl}
+        onClose={() => setFullScreenUrl(null)}
+      />
+    </>
+  )
+})
+
+// --- Composant Principal FindAPartner ---
 
 const FindAPartner = () => {
   const [showPopup, setShowPopup] = useState(false)
@@ -89,7 +216,7 @@ const FindAPartner = () => {
 
     return () => {
       Object.values(photoUrls).forEach((url) => {
-        if (url) URL.revokeObjectURL(url)
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url)
       })
     }
   }, [isLoggedIn, profiles])
@@ -115,6 +242,8 @@ const FindAPartner = () => {
   const handlePass = async (userId) => {
     try {
       await axiosInstance.post(`/matching/pass/${userId}`)
+      // Retirer le profil de la liste après action
+      setProfiles((prev) => prev.filter((p) => p.id !== userId))
       setToast({ message: 'Profil ignoré avec succès.', type: 'success' })
       closePopup()
     } catch (err) {
@@ -129,6 +258,8 @@ const FindAPartner = () => {
   const handleLike = async (userId) => {
     try {
       await axiosInstance.post(`/matching/like/${userId}`)
+      // Retirer le profil de la liste après action
+      setProfiles((prev) => prev.filter((p) => p.id !== userId))
       setToast({ message: 'Like envoyé avec succès !', type: 'success' })
       closePopup()
     } catch (err) {
@@ -248,63 +379,87 @@ const FindAPartner = () => {
 
       {/* Pop-up profil */}
       {showPopup && selectedProfile && (
-        <div className='fixed inset-0 bg-black/60 z-50 flex items-center justify-center'>
-          <div className='bg-gradient-to-b from-red-800 to-red-900 text-white p-6 rounded-xl w-[300px] relative'>
+        <div className='fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4'>
+          <div
+            className='bg-gradient-to-b from-red-800 to-red-900 text-white p-4 rounded-xl relative 
+                       max-w-4xl w-full max-h-[90vh] overflow-y-auto 
+                       md:p-6 md:flex md:space-x-6'
+          >
+            {/* Bouton de Fermeture */}
             <button
-              className='absolute top-4 left-4 text-xl text-white'
+              className='absolute top-4 right-4 text-2xl text-white hover:text-yellow-400 transition z-10'
               onClick={closePopup}
             >
               <FaTimes />
             </button>
 
-            <div className='flex justify-center'>
-              <img
-                src={photoUrls[selectedProfile.id] || '/default-profile.png'}
-                alt={`${selectedProfile.firstName} ${selectedProfile.lastName}`}
-                className='w-40 h-40 rounded-full border-4 border-white object-cover'
-              />
+            {/* Colonne 1: Photos Extra (à gauche) */}
+            <div className='hidden md:block md:w-1/4'>
+              <ProfilePhotoGallery profile={selectedProfile} />
             </div>
 
-            <h2 className='text-center text-2xl font-bold mt-4 mb-2'>
-              {selectedProfile.firstName}, {selectedProfile.age || 'N/A'}
-            </h2>
+            {/* Colonne 2: Infos Profil (Centre/Principal) */}
+            <div className='flex-1 flex flex-col items-center text-center'>
+              <div className='flex justify-center'>
+                <img
+                  src={photoUrls[selectedProfile.id] || '/default-profile.png'}
+                  alt={`${selectedProfile.firstName} ${selectedProfile.lastName}`}
+                  className='w-40 h-40 rounded-full border-4 border-white object-cover'
+                />
+              </div>
 
-            <div className='text-sm text-center space-y-1'>
-              <p>
-                <span className='font-semibold'>Langue maternelle :</span>{' '}
-                {selectedProfile.motherTongue || 'N/A'}
-              </p>
-              <p>
-                <span className='font-semibold'>Pays d’origine :</span>{' '}
-                {selectedProfile.countryOfOrigin || 'N/A'}
-              </p>
-              <p>
-                <span className='font-semibold'>Pays de résidence :</span>{' '}
-                {selectedProfile.countryOfResidence || 'N/A'}
-              </p>
-              <p>
-                <span className='font-semibold'>Ethnie :</span>{' '}
-                {selectedProfile.ethnicity || 'N/A'}
-              </p>
-              <p>
-                <span className='font-semibold'>Religion :</span>{' '}
-                {selectedProfile.religion || 'N/A'}
-              </p>
+              <h2 className='text-2xl font-bold mt-4 mb-2'>
+                {selectedProfile.firstName}, {selectedProfile.age || 'N/A'}
+              </h2>
+
+              <div className='text-sm space-y-2 mb-4 max-w-sm'>
+                <p className='text-base font-semibold border-b border-white/50 pb-1'>
+                  {selectedProfile.bio || 'Pas de description disponible.'}
+                </p>
+                <p>
+                  <span className='font-semibold'>Langue maternelle :</span>{' '}
+                  {selectedProfile.motherTongue || 'N/A'}
+                </p>
+                <p>
+                  <span className='font-semibold'>Pays d’origine :</span>{' '}
+                  {selectedProfile.countryOfOrigin || 'N/A'}
+                </p>
+                <p>
+                  <span className='font-semibold'>Pays de résidence :</span>{' '}
+                  {selectedProfile.countryOfResidence || 'N/A'}
+                </p>
+                <p>
+                  <span className='font-semibold'>Ethnie:</span>{' '}
+                  {selectedProfile.ethnicity || 'N/A'}
+                </p>
+                <p>
+                  <span className='font-semibold'>Religion :</span>{' '}
+                  {selectedProfile.religion || 'N/A'}
+                </p>
+              </div>
             </div>
 
-            <div className='flex justify-center mt-6 gap-10'>
-              <button
-                className='text-white text-xl hover:scale-110 transition'
-                onClick={() => handlePass(selectedProfile.id)}
-              >
-                <FaTimes />
-              </button>
-              <button
-                className='text-yellow-400 text-xl hover:scale-110 transition'
-                onClick={() => handleLike(selectedProfile.id)}
-              >
-                <FaHeart />
-              </button>
+            {/* Colonne 3: Boutons (à droite, pour la cohérence visuelle) */}
+            <div className='md:w-1/4 flex flex-col justify-center items-center p-2'>
+              {/* Affichage des photos extra sur mobile */}
+              <div className='md:hidden w-full mb-4'>
+                <ProfilePhotoGallery profile={selectedProfile} />
+              </div>
+
+              <div className='flex justify-center md:flex-col md:space-y-4 md:space-x-0 space-x-10 mt-6 md:mt-0'>
+                <button
+                  className='bg-white text-red-700 w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg hover:scale-110 transition'
+                  onClick={() => handlePass(selectedProfile.id)}
+                >
+                  <FaTimes />
+                </button>
+                <button
+                  className='bg-yellow-400 text-white w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg hover:scale-110 transition'
+                  onClick={() => handleLike(selectedProfile.id)}
+                >
+                  <FaHeart />
+                </button>
+              </div>
             </div>
           </div>
         </div>

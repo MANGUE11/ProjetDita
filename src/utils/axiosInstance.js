@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const axiosInstance = axios.create({
-  baseURL: 'http://13.51.235.99:8081/api/v1',
+  baseURL: 'http://16.170.240.170:8081/api/v1',
 })
 
 // Ajouter un interceptor pour injecter automatiquement le token dans chaque requête

@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 const API = axios.create({
-  baseURL: 'http://13.51.235.99:8081/', // ta base URL
+  baseURL: 'http://16.170.240.170:8081/', // ta base URL
 })
 
 API.interceptors.request.use((req) => {
